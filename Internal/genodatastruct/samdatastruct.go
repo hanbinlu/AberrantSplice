@@ -67,12 +67,13 @@ func (m *op) refreg() Coor {
 type CIGAR struct {
 	cigar string
 	pos   int
+	chro  string
 }
 
 //RegionAligned parses CIGAR string and return the aligned region
 //of the reference genome. Especially if intron exists, return
 //more than one segment
-func (cigar *CIGAR) RegionAligned() []Coor {
+func (cigar CIGAR) RegionAligned() []Coor {
 	//take each pattern of num/op in cigar
 	//and walk on the reference instructed by num/op
 	//to generate aligned region

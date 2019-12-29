@@ -50,6 +50,26 @@ func MergeRegions(regions []Coor) []Coor {
 	return merged
 }
 
+//Region A overlaping with region B (more than 1bp)
+func (A Coor) Intersect(B Coor) bool {
+	if A.Start >= B.Start && A.Start <= B.End {
+		return true
+	} else if A.End >= B.Start && A.End <= B.End {
+		return true
+	} else {
+		return false
+	}
+}
+
+//Region A inside region B
+func (A Coor) Inside(B Coor) bool {
+	if A.Start >= B.Start && A.End <= B.End {
+		return true
+	} else {
+		return false
+	}
+}
+
 //Interval region take in a SORTED region list and return the intervals
 //demarcated by the list
 func IntervalRegions(regions []Coor) []Coor {
@@ -76,4 +96,24 @@ func (g Gene) MergeExons() []Coor {
 func (g Gene) IntervalOfExons() []Coor {
 	merged := g.MergeExons()
 	return IntervalRegions(merged)
+}
+
+//Gene locus overlapping with the region of the same chromasome
+func (g Gene) Intersect(region Coor) bool {
+	return region.Intersect(g.Coordinate)
+}
+
+//Gene locus contains the region of the same chromasome
+func (g Gene) Contains(region Coor) bool {
+	return region.Inside(g.Coordinate)
+}
+
+//Transcript contains the region of the same chromasome
+func (t Transcript) ExonContains(region Coor) bool {
+	for _, exon := range t.Exons {
+		if region.Inside(exon) {
+			return true
+		}
+	}
+	return false
 }

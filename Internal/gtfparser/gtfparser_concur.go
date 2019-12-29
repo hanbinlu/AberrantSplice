@@ -1,10 +1,11 @@
 package gtfparser
 
 import (
-	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 	"bufio"
+	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -134,6 +135,16 @@ func ParsegtfConcurrent(gtf string) map[string]*genodatastruct.Gene {
 		return out
 	}()
 	for unit := range mergechan {
+		//sort the exons by strand
+		strand := unit.gene.Strand
+		for _, transcript := range unit.gene.Transcripts {
+			exons := transcript.Exons
+			if strand == "+" {
+				sort.Slice(exons, func(i, j int) bool { return exons[i].Start <= exons[j].Start })
+			} else {
+				sort.Slice(exons, func(i, j int) bool { return exons[i].Start >= exons[j].Start })
+			}
+		}
 		Genes[unit.geneid] = unit.gene
 	}
 	return Genes
