@@ -6,7 +6,24 @@ import (
 	"strings"
 )
 
-type SamFlag int
+//Only take sam fields related to mapping info
+//not full support for all the sam fields yet
+type SamRecPartial struct {
+	Flag       int64
+	CIGAR      string
+	Pos        int
+	Chromasome string
+	MAPQ       int
+}
+
+func (sr *SamRecPartial) Strand() string {
+	bitwise := strconv.FormatInt(sr.Flag, 2)
+	if string(bitwise[len(bitwise)-5]) == "1" {
+		return "-"
+	} else {
+		return "+"
+	}
+}
 
 //Sample sam alignment record
 //00953:17:HTJKFDSXX:2:1101:8287:1031    153     8       22663793        60      25M1671N76M     =       22663793        0
@@ -62,34 +79,26 @@ func (m *op) refreg() Coor {
 	return cigarop[m.op](m.pos, m.steps)
 }
 
-//CIGAR struct have data of mapping start position and cigar strings
-//Methods will return the alignment scheme from the CIGAR
-type CIGAR struct {
-	cigar string
-	pos   int
-	chro  string
-}
-
 //RegionAligned parses CIGAR string and return the aligned region
 //of the reference genome. Especially if intron exists, return
 //more than one segment
-func (cigar CIGAR) RegionAligned() []Coor {
+func (sr SamRecPartial) RegionAligned() []Coor {
 	//take each pattern of num/op in cigar
 	//and walk on the reference instructed by num/op
 	//to generate aligned region
 	digits := "0123456789"
 	start := 0
 	aligned := []Coor{}
-	walkfrom := cigar.pos
-	for i, c := range cigar.cigar {
+	walkfrom := sr.Pos
+	for i, c := range sr.CIGAR {
 		if !strings.ContainsRune(digits, c) { //trigger operation
-			n, _ := strconv.Atoi(cigar.cigar[start:i])
-			operator := op{walkfrom, n, string(cigar.cigar[i])}
+			n, _ := strconv.Atoi(sr.CIGAR[start:i])
+			operator := op{walkfrom, n, string(sr.CIGAR[i])}
 			extension := operator.refreg()
 			//combine extension to walked regions
 			if operator.op == "N" { //intron contained splited read
-				//add intron segment and a new segment
-				aligned = append(aligned, extension, Coor{extension.End + 1, extension.End + 1})
+				//initiate a new segment that skipping intron
+				aligned = append(aligned, Coor{extension.End + 1, extension.End + 1})
 			} else {
 				lastSeg := &aligned[len(aligned)-1]
 				//Continueous and updatable
