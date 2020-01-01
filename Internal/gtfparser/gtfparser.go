@@ -1,8 +1,8 @@
 package gtfparser
 
 import (
-	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 	"bufio"
+	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 	"log"
 	"os"
 	"strconv"
@@ -83,7 +83,7 @@ func makeGene(fields []string, attributes map[string]string) *genodatastruct.Gen
 	end, _ := strconv.Atoi(fields[4])
 	return &genodatastruct.Gene{
 		GeneName:   gene,
-		Chromosome: fields[0],
+		Chromosome: genodatastruct.ChroSym(fields[0]),
 		Coordinate: genodatastruct.Coor{start, end},
 		Strand:     fields[6],
 		Attributes: attributes,
@@ -96,7 +96,7 @@ func makeTranscript(fields []string, attributes map[string]string) *genodatastru
 	end, _ := strconv.Atoi(fields[4])
 	return &genodatastruct.Transcript{
 		TranscriptName: transcript,
-		Chromosome:     fields[0],
+		Chromosome:     genodatastruct.ChroSym(fields[0]),
 		Coordinate:     genodatastruct.Coor{start, end},
 		Strand:         fields[6],
 		Attributes:     attributes,

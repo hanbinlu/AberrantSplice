@@ -12,7 +12,7 @@ import (
 //ParseSam filter reads and parse them into SamRecPartial struct
 //and generating a channel of iterator
 func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan genodatastruct.SamRecPartial {
-	out := make(chan genodatastruct.SamRecPartial)
+	out := make(chan genodatastruct.SamRecPartial, 100)
 	go func() {
 		samF, err := os.Open(sam)
 		if err != nil {
@@ -35,10 +35,10 @@ func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan
 				Flag:       int64(flag),
 				MAPQ:       mapq,
 				Pos:        pos,
-				Chromasome: fields[2],
+				Chromosome: genodatastruct.ChroSym(fields[2]),
 				CIGAR:      fields[5],
 			}
-			if !filter(temp) {
+			if filter(temp) {
 				out <- temp
 			}
 		}

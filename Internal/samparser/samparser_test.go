@@ -20,7 +20,7 @@ func TestParseSam(t *testing.T) {
 	total := 0
 	for i := range samchan {
 		total++
-		if i.Chromasome == "1" {
+		if i.Chromosome == "1" {
 			cnt++
 		}
 	}

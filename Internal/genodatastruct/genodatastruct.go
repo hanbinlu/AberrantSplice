@@ -2,6 +2,7 @@ package genodatastruct
 
 import (
 	"sort"
+	"strings"
 )
 
 //Allgene is a preset value for choosing behaviour of selecting all gene to record
@@ -116,4 +117,13 @@ func (t Transcript) ExonContains(region Coor) bool {
 		}
 	}
 	return false
+}
+
+//Convert chromosome string to unifying pattern of "chrn"
+func ChroSym(s string) string {
+	if strings.HasPrefix(s, "chr") {
+		return s
+	} else {
+		return "chr" + s
+	}
 }

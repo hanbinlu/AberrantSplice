@@ -12,7 +12,7 @@ type SamRecPartial struct {
 	Flag       int64
 	CIGAR      string
 	Pos        int
-	Chromasome string
+	Chromosome string
 	MAPQ       int
 }
 
@@ -92,6 +92,11 @@ func (sr SamRecPartial) RegionAligned() []Coor {
 	walkfrom := sr.Pos
 	for i, c := range sr.CIGAR {
 		if !strings.ContainsRune(digits, c) { //trigger operation
+			if string(c) == "S" || string(c) == "I" {
+				//soft clip or insertion does not extend segment in the reference
+				start = i + 1
+				continue
+			}
 			n, _ := strconv.Atoi(sr.CIGAR[start:i])
 			operator := op{walkfrom, n, string(sr.CIGAR[i])}
 			extension := operator.refreg()
@@ -100,12 +105,17 @@ func (sr SamRecPartial) RegionAligned() []Coor {
 				//initiate a new segment that skipping intron
 				aligned = append(aligned, Coor{extension.End + 1, extension.End + 1})
 			} else {
-				lastSeg := &aligned[len(aligned)-1]
-				//Continueous and updatable
-				if extension.Start-lastSeg.End <= 1 && extension.End > lastSeg.End {
-					lastSeg.End = extension.End
+				if len(aligned) == 0 {
+					aligned = append(aligned, extension)
 				} else {
-					log.Fatalln("Broken segments")
+					lastSeg := &aligned[len(aligned)-1]
+					//Continueous and updatable
+					if extension.Start-lastSeg.End <= 1 && extension.End >= lastSeg.End {
+						lastSeg.End = extension.End
+					} else {
+						log.Println(operator.op, "\t", lastSeg.End, "\t", extension.End)
+						log.Fatalln("The CIGAR: ", sr.CIGAR, ". Broken segments")
+					}
 				}
 			}
 			walkfrom = extension.End + 1
