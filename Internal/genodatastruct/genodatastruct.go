@@ -83,7 +83,7 @@ func IntervalRegions(regions []Coor) []Coor {
 
 //MergeExons merges all the exons of a gene to
 //produce a joint set of exons of a gene locus
-func (g Gene) MergeExons() []Coor {
+func (g *Gene) MergeExons() []Coor {
 	exonCollect := []Coor{}
 	for _, transcript := range g.Transcripts {
 		exonCollect = append(exonCollect, transcript.Exons...)
@@ -94,23 +94,23 @@ func (g Gene) MergeExons() []Coor {
 
 //IntervalofExons takes the interval of merged exons
 //they are typically high confident introns
-func (g Gene) IntervalOfExons() []Coor {
+func (g *Gene) IntervalOfExons() []Coor {
 	merged := g.MergeExons()
 	return IntervalRegions(merged)
 }
 
 //Gene locus overlapping with the region of the same chromasome
-func (g Gene) Intersect(region Coor) bool {
+func (g *Gene) Intersect(region Coor) bool {
 	return region.Intersect(g.Coordinate)
 }
 
 //Gene locus contains the region of the same chromasome
-func (g Gene) Contains(region Coor) bool {
+func (g *Gene) Contains(region Coor) bool {
 	return region.Inside(g.Coordinate)
 }
 
 //Transcript contains the region of the same chromasome
-func (t Transcript) ExonContains(region Coor) bool {
+func (t *Transcript) ExonContains(region Coor) bool {
 	for _, exon := range t.Exons {
 		if region.Inside(exon) {
 			return true

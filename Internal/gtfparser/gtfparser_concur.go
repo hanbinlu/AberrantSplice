@@ -35,6 +35,7 @@ func (w *GatherGeneRecs) TakeGeneLines() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer gtfF.Close()
 
 		scanner := bufio.NewScanner(gtfF)
 		genelines := []Field{}
