@@ -10,10 +10,10 @@ import (
 	//"sync"
 )
 
-//ParseSam filter reads and parse them into SamRecPartial struct
+//ParseSam filter reads and parse them into SamRec struct
 //and generating a channel of iterator
-func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan genodatastruct.SamRecPartial {
-	out := make(chan genodatastruct.SamRecPartial, 100)
+func ParseSam(sam string, filter func(genodatastruct.SamRec) bool) <-chan genodatastruct.SamRec {
+	out := make(chan genodatastruct.SamRec, 100)
 	go func() {
 		samF, err := os.Open(sam)
 		if err != nil {
@@ -34,7 +34,7 @@ func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan
 			}
 			mapq, _ := strconv.Atoi(fields[4])
 			pos, _ := strconv.Atoi(fields[3])
-			temp := genodatastruct.SamRecPartial{
+			temp := genodatastruct.SamRec{
 				Flag:       int64(flag),
 				MAPQ:       mapq,
 				Pos:        pos,
@@ -74,7 +74,7 @@ func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan
 //}
 //
 ////Unit job of spliting sam line and generate Sam rec structure
-//func MakeSamRec(in <-chan string, out chan genodatastruct.SamRecPartial, filter func(genodatastruct.SamRecPartial) bool) {
+//func MakeSamRec(in <-chan string, out chan genodatastruct.SamRec, filter func(genodatastruct.SamRec) bool) {
 //	for line := range in {
 //		fields := strings.SplitN(line, "\t", 7)
 //		flag, _ := strconv.Atoi(fields[1])
@@ -83,7 +83,7 @@ func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan
 //		}
 //		mapq, _ := strconv.Atoi(fields[4])
 //		pos, _ := strconv.Atoi(fields[3])
-//		temp := genodatastruct.SamRecPartial{
+//		temp := genodatastruct.SamRec{
 //			Flag:       int64(flag),
 //			MAPQ:       mapq,
 //			Pos:        pos,
@@ -97,21 +97,21 @@ func ParseSam(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan
 //	close(out)
 //}
 //
-////ParseSam filter reads and parse them into SamRecPartial struct
+////ParseSam filter reads and parse them into SamRec struct
 ////and generating a channel of iterator
-//func ParseSamConcur(sam string, filter func(genodatastruct.SamRecPartial) bool) <-chan genodatastruct.SamRecPartial {
+//func ParseSamConcur(sam string, filter func(genodatastruct.SamRec) bool) <-chan genodatastruct.SamRec {
 //	readline := SamReader(sam)
-//	spliter := []chan genodatastruct.SamRecPartial{}
+//	spliter := []chan genodatastruct.SamRec{}
 //	n := 1
 //	for i := 0; i < n; i++ {
-//		o := make(chan genodatastruct.SamRecPartial, 10)
+//		o := make(chan genodatastruct.SamRec, 10)
 //		go MakeSamRec(readline, o, filter)
 //		spliter = append(spliter, o)
 //	}
 //	//fanout
 //	var wg sync.WaitGroup
-//	out := make(chan genodatastruct.SamRecPartial)
-//	output := func(c chan genodatastruct.SamRecPartial) {
+//	out := make(chan genodatastruct.SamRec)
+//	output := func(c chan genodatastruct.SamRec) {
 //		for m := range c {
 //			out <- m
 //		}

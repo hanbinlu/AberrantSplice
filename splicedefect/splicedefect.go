@@ -1,41 +1,74 @@
 package main
 
 import (
-	//"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
-	"fmt"
-	"github.com/Hanbin/AberrantSplice/Internal/gtfparser"
 	"os"
-	"time"
-	//"sync"
+	"sync"
+
+	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
+	"github.com/Hanbin/AberrantSplice/Internal/gtfparser"
+	"github.com/Hanbin/AberrantSplice/Internal/samparser"
+	"github.com/Hanbin/AberrantSplice/scripts/splicetype"
 )
 
 func main() {
-	gtf := os.Args[1]
-	//geneset := []string{"sTCF3"}
-	//geneset := genodatastruct.Allgene
-	//start := time.Now()
-	//result := gtfparser.Parsegtf(gtf, geneset)
-	//fmt.Printf("Sequential parse takes %v\n%v\n", time.Since(start), result["ENSG00000071564.16"])
-	start := time.Now()
+	gtf, sam := os.Args[1], os.Args[2]
 	genes := gtfparser.ParsegtfConcurrent(gtf)
-	fmt.Printf("Concurrent parse %v genes takes %v\n", len(genes), time.Since(start))
+	index := splicetype.SortGeneMap(genes)
+	mapqfilter := func(s genodatastruct.SamRec) bool {
+		if s.MAPQ > 30 {
+			return true
+		}
+		return false
+	}
+	samchan := samparser.ParseSam(sam, mapqfilter)
+	normal, intronInc, exonSkip := 0, 0, 0
+	var out []chan string
+	nworker := 6
+	for i := 0; i < nworker; i++ {
+		o := make(chan string)
+		out = append(out, o)
+		worker := splicetype.RMTConstructor{
+			In:    samchan,
+			Out:   o,
+			Index: index,
+			Genes: genes,
+		}
+		go worker.Construct()
+	}
+	//merge chan
+	var wg sync.WaitGroup
+	wg.Add(nworker)
+	mergechan := make(chan string)
+	output := func(c chan string) {
+		for v := range c {
+			mergechan <- v
+		}
+		wg.Done()
+	}
+	for _, o := range out {
+		go output(o)
+	}
+	go func() {
+		wg.Wait()
+		close(mergechan)
+	}()
+	//take results
+	for s := range mergechan {
+		if s == "normal" {
+			normal++
+		}
+		if s == "intronInclusion" {
+			intronInc++
+		}
+		if s == "exonSkipping" {
+			exonSkip++
+		}
+		//if s == "fatal" {
+		//	log.Fatalln("Exception read")
+		//}
+	}
 
-	//introns := make(map[string][]genodatastruct.Coor)
-	//for _, gene := range genes {
-	//	introns[gene.Chromosome] = append(introns[gene.Chromosome], gene.IntervalOfExons()...)
-	//}
-	//merge overlaping introns and sort output
-	//for chro := range introns {
-	//	regions := introns[chro]
-	//	sort.Slice(regions, func(i, j int) bool { return regions[i].Start <= regions[j].Start })
-	//	if len(regions) > 0 {
-	//		fmt.Println("%v: %v", chro, regions[0:9])
-	//	} else {
-	//		log.Println("%v has no introns", chro)
-	//	}
-	//}
+	println("Normal reads #", normal)
+	println("Intron Inclusion reads #", intronInc)
+	println("Exon skipping reads #", exonSkip)
 }
-
-//func AssignMappedReads(cigar *genodatastruct.CIGAR, genes map[string]*genodatastruct.Gene) {
-//
-//}

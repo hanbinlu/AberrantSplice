@@ -1,9 +1,10 @@
-package readtranori
+package splicetype
 
 import (
-	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 	"log"
 	"sort"
+
+	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 )
 
 //Wrapper for gene map index for each chromosome
@@ -45,9 +46,10 @@ func SortGeneMap(Genes map[string]*genodatastruct.Gene) map[string]*GeneMapIndex
 //Map mapped read to the transcriptomic origin (RMT)
 type ReadMapTranscriptome struct {
 	Chromosome string
+	Strand     string
 	Segment    []genodatastruct.Coor
 	GeneLoci   []string
-	ExonOri    map[string][]int //transcriptname->matched exon number of each segment
+	MapTran    [][]TranCoor //transcriptname->matched exon number of each segment
 }
 
 //Searching for gene loci that Intersect with any of the segment
@@ -55,7 +57,7 @@ func (mr *ReadMapTranscriptome) InvolvedGeneLoci(index map[string]*GeneMapIndex)
 	geneset := map[string]bool{}
 	//check index
 	if _, ok := index[mr.Chromosome]; !ok {
-		mr.GeneLoci = append(mr.GeneLoci, "")
+		mr.GeneLoci = append(mr.GeneLoci, "No Chromosome")
 		return
 	}
 
@@ -84,7 +86,7 @@ func (mr *ReadMapTranscriptome) InvolvedGeneLoci(index map[string]*GeneMapIndex)
 			break
 		}
 		for _, seg := range mr.Segment {
-			if seg.Intersect(genecoorpair.Locus) {
+			if seg.Inside(genecoorpair.Locus) { //only consider genic reads
 				if _, ok := geneset[genecoorpair.GeneID]; !ok {
 					//println(genecoorpair.GeneId)
 					geneset[genecoorpair.GeneID] = true
@@ -94,74 +96,54 @@ func (mr *ReadMapTranscriptome) InvolvedGeneLoci(index map[string]*GeneMapIndex)
 		}
 	}
 	if len(mr.GeneLoci) == 0 { //no hit
-		mr.GeneLoci = append(mr.GeneLoci, "")
+		mr.GeneLoci = append(mr.GeneLoci, "Intergenic")
 	}
 	return
 }
 
-//Matching the segment to exon
-func (mr *ReadMapTranscriptome) LocateExon(genes map[string]*genodatastruct.Gene) {
-	if mr.GeneLoci[0] == "" {
+//Detail annotate the segment's Exon/Intron location in the transcriptome
+type TranCoor struct {
+	TranscriptName string
+	IsIn           bool
+	ExonID         []int
+	IntronID       []int
+}
+
+//Determine a single segment's splice status
+func (mr *ReadMapTranscriptome) MapToTran(genes map[string]*genodatastruct.Gene) {
+	if mr.GeneLoci[0] == "No Chromosome" || mr.GeneLoci[0] == "Intergenic" {
 		return
 	} else if len(mr.GeneLoci) == 0 {
 		log.Fatalln("Call InvolvedGeneLoci() first")
 	}
-	exonori := map[string][]int{}
+	//tranloc := [][]TranCoor{}
 	for _, geneid := range mr.GeneLoci {
 		//go over the transcripts of each related gene
 		if _, ok := genes[geneid]; !ok {
 			log.Fatalln(geneid, " is missing in GTF file")
 		}
+		if mr.Strand != genes[geneid].Strand {
+			continue
+		}
 		transcripts := genes[geneid].Transcripts
 		for _, t := range transcripts {
-			//set the temp to be -1. -1 stands for no matching exon from this transcript
-			temp := make([]int, len(mr.Segment))
-			for x := range temp {
-				temp[x] = -1
-			}
-			//compare each exon with each segement
-			for i, exon := range t.Exons {
-				for j, seg := range mr.Segment {
-					if seg.Inside(exon) {
-						temp[j] = i //i exon of the transcript contains segment j
-						exonori[t.TranscriptName] = temp
-					}
+			temp := make([]TranCoor, len(mr.Segment))
+			//Initiate Temp
+			emptyCnt := 0
+			for i, seg := range mr.Segment {
+				temp[i] = TranCoor{TranscriptName: t.TranscriptName}
+				//which exon and intron
+				temp[i].ExonID = t.WhichExonIntersect(seg)
+				temp[i].IntronID = t.WhichIntronIntersect(seg)
+				if len(temp[i].ExonID)+len(temp[i].IntronID) == 0 {
+					emptyCnt++
 				}
+			}
+			if emptyCnt == 0 {
+				mr.MapTran = append(mr.MapTran, temp)
 			}
 		}
 	}
-	mr.ExonOri = exonori
 }
 
-//Goroutine infrastruture to generate
-type RMTConstructor struct {
-	in    <-chan genodatastruct.SamRecPartial
-	out   chan int
-	genes map[string]*genodatastruct.Gene
-	index map[string]*GeneMapIndex
-}
-
-func (w *RMTConstructor) Construct() {
-	cnt := 0
-	for samrec := range w.in {
-		mr := ReadMapTranscriptome{
-			Chromosome: samrec.Chromosome,
-			Segment:    samrec.RegionAligned(),
-		}
-		mr.InvolvedGeneLoci(w.index)
-		mr.LocateExon(w.genes)
-		sum := 0
-		for _, exonlist := range mr.ExonOri {
-			for _, v := range exonlist {
-				if v != -1 {
-					sum++
-				}
-			}
-		}
-		if sum == 0 {
-			cnt++
-		}
-	}
-	w.out <- cnt
-	close(w.out)
-}
+//func (mr *ReadMapTranscriptome)

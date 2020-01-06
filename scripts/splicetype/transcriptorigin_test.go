@@ -1,4 +1,4 @@
-package readtranori
+package splicetype
 
 import (
 	"os"
@@ -32,17 +32,17 @@ func stabletest(gtf, sam string) {
 	//result := []string{}
 	genes := gtfparser.ParsegtfConcurrent(gtf)
 	index := SortGeneMap(genes)
-	mapqfilter := func(s genodatastruct.SamRecPartial) bool {
-		if s.MAPQ > 10 {
+	mapqfilter := func(s genodatastruct.SamRec) bool {
+		if s.MAPQ > 30 {
 			return true
 		}
 		return false
 	}
 	samchan := samparser.ParseSam(sam, mapqfilter)
-	cnt := 0
-	var out []chan int
+	total, cnt := 0, 0
+	var out []chan []int
 	for i := 0; i < 6; i++ {
-		o := make(chan int)
+		o := make(chan []int)
 		out = append(out, o)
 		worker := RMTConstructor{
 			in:    samchan,
@@ -53,7 +53,9 @@ func stabletest(gtf, sam string) {
 		go worker.Construct()
 	}
 	for _, o := range out {
-		cnt += <-o
+		raw := <-o
+		cnt += raw[0]
+		total += raw[1]
 	}
 	//for samrec := range samchan {
 	//	mr := ReadMapTranscriptome{

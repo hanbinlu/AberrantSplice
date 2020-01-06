@@ -23,6 +23,7 @@ type Transcript struct { //name, genomic locus, exon
 	Chromosome, Strand string
 	Coordinate         Coor
 	Exons              []Coor //start and end locations of an exon
+	Introns            []Coor
 	Attributes         map[string]string
 }
 
@@ -109,14 +110,38 @@ func (g *Gene) Contains(region Coor) bool {
 	return region.Inside(g.Coordinate)
 }
 
-//Transcript contains the region of the same chromasome
-func (t *Transcript) ExonContains(region Coor) bool {
-	for _, exon := range t.Exons {
-		if region.Inside(exon) {
-			return true
+//Introns of a transcript
+func (t *Transcript) GenerateIntrons() []Coor {
+	if t.Strand == "+" {
+		return IntervalRegions(t.Exons)
+	} else {
+		SortCoors(t.Exons, true)
+		introns := IntervalRegions(t.Exons)
+		SortCoors(t.Exons, false)
+		return introns
+	}
+}
+
+//find the exon that intersect with a given region of a transcript
+func (t *Transcript) WhichExonIntersect(reg Coor) []int {
+	result := []int{}
+	for i, exon := range t.Exons {
+		if exon.Intersect(reg) {
+			result = append(result, i)
 		}
 	}
-	return false
+	return result
+}
+
+//find the intron that intersect with a given region of a transcript
+func (t *Transcript) WhichIntronIntersect(reg Coor) []int {
+	result := []int{}
+	for i, intron := range t.Introns {
+		if intron.Intersect(reg) {
+			result = append(result, i)
+		}
+	}
+	return result
 }
 
 //Convert chromosome string to unifying pattern of "chrn"
@@ -125,5 +150,13 @@ func ChroSym(s string) string {
 		return s
 	} else {
 		return "chr" + s
+	}
+}
+
+func SortCoors(CoorSlice []Coor, ascendent bool) {
+	if ascendent {
+		sort.Slice(CoorSlice, func(i, j int) bool { return CoorSlice[i].Start <= CoorSlice[j].Start })
+	} else {
+		sort.Slice(CoorSlice, func(i, j int) bool { return CoorSlice[i].Start >= CoorSlice[j].Start })
 	}
 }

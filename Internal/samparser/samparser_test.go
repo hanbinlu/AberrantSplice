@@ -8,7 +8,7 @@ import (
 
 func TestParseSam(t *testing.T) {
 	sam := os.Args[1]
-	mapqfilter := func(s genodatastruct.SamRecPartial) bool {
+	mapqfilter := func(s genodatastruct.SamRec) bool {
 		if s.MAPQ > 10 {
 			return true
 		} else {

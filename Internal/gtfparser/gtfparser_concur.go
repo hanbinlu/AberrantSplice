@@ -2,13 +2,13 @@ package gtfparser
 
 import (
 	"bufio"
-	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 	"log"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
 )
 
 //This scripts try to fatorize the work flow of parsing a gtf file to enable concurrent
@@ -141,10 +141,11 @@ func ParsegtfConcurrent(gtf string) map[string]*genodatastruct.Gene {
 		for _, transcript := range unit.gene.Transcripts {
 			exons := transcript.Exons
 			if strand == "+" {
-				sort.Slice(exons, func(i, j int) bool { return exons[i].Start <= exons[j].Start })
+				genodatastruct.SortCoors(exons, true)
 			} else {
-				sort.Slice(exons, func(i, j int) bool { return exons[i].Start >= exons[j].Start })
+				genodatastruct.SortCoors(exons, false)
 			}
+			transcript.Introns = transcript.GenerateIntrons()
 		}
 		Genes[unit.geneid] = unit.gene
 	}

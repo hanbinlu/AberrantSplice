@@ -8,7 +8,7 @@ import (
 
 //Only take sam fields related to mapping info
 //not full support for all the sam fields yet
-type SamRecPartial struct {
+type SamRec struct {
 	Flag       int64
 	CIGAR      string
 	Pos        int
@@ -16,7 +16,7 @@ type SamRecPartial struct {
 	MAPQ       int
 }
 
-func (sr *SamRecPartial) Strand() string {
+func (sr *SamRec) Strand() string {
 	bitwise := strconv.FormatInt(sr.Flag, 2)
 	if string(bitwise[len(bitwise)-5]) == "1" {
 		return "-"
@@ -82,7 +82,7 @@ func (m *op) refreg() Coor {
 //RegionAligned parses CIGAR string and return the aligned region
 //of the reference genome. Especially if intron exists, return
 //more than one segment
-func (sr SamRecPartial) RegionAligned() []Coor {
+func (sr SamRec) RegionAligned() []Coor {
 	//take each pattern of num/op in cigar
 	//and walk on the reference instructed by num/op
 	//to generate aligned region
@@ -122,6 +122,12 @@ func (sr SamRecPartial) RegionAligned() []Coor {
 			start = i + 1
 		} else {
 			continue
+		}
+	}
+	//rearrange segment sequence to according to strand
+	if sr.Strand() == "-" && len(aligned) > 0 {
+		for i, j := 0, len(aligned)-1; i < j; i, j = i+1, j-1 {
+			aligned[i], aligned[j] = aligned[j], aligned[i]
 		}
 	}
 	return aligned
