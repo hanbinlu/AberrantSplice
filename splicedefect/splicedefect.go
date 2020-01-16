@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"fmt"
 	"sync"
 
 	"github.com/Hanbin/AberrantSplice/Internal/genodatastruct"
@@ -23,7 +24,7 @@ func main() {
 	samchan := samparser.ParseSam(sam, mapqfilter)
 	normal, intronInc, exonSkip := 0, 0, 0
 	var out []chan string
-	nworker := 6
+	nworker := 5
 	for i := 0; i < nworker; i++ {
 		o := make(chan string)
 		out = append(out, o)
@@ -69,6 +70,6 @@ func main() {
 	}
 
 	println("Normal reads #", normal)
-	println("Intron Inclusion reads #", intronInc)
-	println("Exon skipping reads #", exonSkip)
+	fmt.Printf("Intron Inclusion reads %d of %e\n", intronInc, float64(intronInc)/float64(normal))
+	fmt.Printf("Exon skipping reads %d of %e\n", exonSkip, float64(exonSkip)/float64(normal))
 }

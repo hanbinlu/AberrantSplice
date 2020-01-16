@@ -18,7 +18,7 @@ type SamRec struct {
 
 func (sr *SamRec) Strand() string {
 	bitwise := strconv.FormatInt(sr.Flag, 2)
-	if string(bitwise[len(bitwise)-5]) == "1" {
+	if len(bitwise) >= 5 && string(bitwise[len(bitwise)-5]) == "1" {
 		return "-"
 	} else {
 		return "+"

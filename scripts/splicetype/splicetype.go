@@ -30,25 +30,26 @@ func (m *TranCoor) ClassSeg() TranOri {
 type SpliceType string
 
 func (mr *ReadMapTranscriptome) SpliceType() string {
-	if len(mr.Segment) == 1 { //no junction
-		sumflag := Crossonic //lowest value of TranOri type
-		for _, trancoor := range mr.MapTran {
-			flag := trancoor[0].ClassSeg()
-			if flag == Exonic {
-				sumflag = Exonic
-				break
-			} else if flag == Intronic {
-				sumflag = Intronic
-			} //flag == Crossonic no change the sumflag value
-		}
-		if sumflag == Exonic {
-			return "normal"
-		} else if sumflag == Intronic {
-			return "intronic"
-		} else {
-			return "intronInclusion"
-		}
-	} else if len(mr.Segment) > 1 { // splited read
+	//if len(mr.Segment) == 1 { //no junction
+		//sumflag := Crossonic //lowest value of TranOri type
+		//for _, trancoor := range mr.MapTran {
+		//	flag := trancoor[0].ClassSeg()
+		//	if flag == Exonic {
+		//		sumflag = Exonic
+		//		break
+		//	} else if flag == Intronic {
+		//		sumflag = Intronic
+		//	} //flag == Crossonic no change the sumflag value
+		//}
+		//if sumflag == Exonic {
+		//	return "normal"
+		//} else if sumflag == Intronic {
+		//	return "intronic"
+		//} else {
+		//	return "intronInclusion"
+		//}
+	//} else 
+	if len(mr.Segment) > 1 { // splited read
 		classify := []string{}
 		for _, trancoors := range mr.MapTran {
 			temp := []TranOri{}
